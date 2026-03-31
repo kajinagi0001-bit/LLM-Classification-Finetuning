@@ -8,3 +8,5 @@ jupyter
 transformers
 tiktoken
 sentencepiece
+plotly
+protobuf
