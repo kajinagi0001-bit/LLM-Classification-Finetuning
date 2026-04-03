@@ -16,6 +16,30 @@ def preprocess(df):
     df["text_b"] = df.apply(lambda r: build_text(r["prompt"], r["response_b"]), axis=1)
     return df
 
+def make_pairs(row):
+    row["encode_fail"] = False
+    try:
+        prompt = row.prompt.encode("utf-8").decode("utf-8")
+    except:
+        prompt = ""
+        row["encode_fail"] = True
+
+    try:
+        response_a = row.response_a.encode("utf-8").decode("utf-8")
+    except:
+        response_a = ""
+        row["encode_fail"] = True
+
+    try:
+        response_b = row.response_b.encode("utf-8").decode("utf-8")
+    except:
+        response_b = ""
+        row["encode_fail"] = True
+        
+    row['options'] = [f"Prompt: {prompt}\n\nResponse: {response_a}",  # Response from Model A
+                      f"Prompt: {prompt}\n\nResponse: {response_b}"  # Response from Model B
+                      ]
+    return row
 
 class LMSYSDataset(Dataset):
     def __init__(self, df, tokenizer, max_length, is_test=False):

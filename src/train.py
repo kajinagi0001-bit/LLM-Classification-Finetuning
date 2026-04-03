@@ -10,7 +10,7 @@ from torch.optim import AdamW
 from tqdm import tqdm
 
 from config import CFG
-from dataset import preprocess, LMSYSDataset
+from dataset import preprocess, make_pairs, LMSYSDataset
 from model import PairwiseDebertaClassifier
 import json
 import wandb
@@ -36,6 +36,8 @@ def train():
 
     df = pd.read_csv("input/train.csv")
     df = preprocess(df)
+    df = df.apply(make_pairs, axis=1)
+    df.encode_fail.value_counts(normalize=False)
 
     df["class_name"] = df[["winner_model_a", "winner_model_b", "winner_tie"]].idxmax(axis=1)
     df["label"] = df["class_name"].map(CFG.name2label)

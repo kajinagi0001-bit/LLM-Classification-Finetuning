@@ -7,7 +7,7 @@ from transformers import AutoTokenizer
 from tqdm import tqdm
 
 from config import CFG
-from dataset import preprocess, LMSYSDataset
+from dataset import preprocess, make_pairs, LMSYSDataset
 from model import PairwiseDebertaClassifier
 
 
@@ -18,6 +18,8 @@ def inference():
 
     test_df = pd.read_csv("input/test.csv")
     test_df = preprocess(test_df)
+    test_df = test_df.apply(make_pairs, axis=1)
+    test_df.encode_fail.value_counts(normalize=False)
 
     tokenizer = AutoTokenizer.from_pretrained(CFG.model_name)
 
