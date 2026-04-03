@@ -15,7 +15,7 @@ from model import PairwiseDebertaClassifier
 import json
 import wandb
 
-wandb.init(project="LLM-Classification Finetuning", name=CFG.exp_name, config=CFG.__dict__)
+wandb.init(project="LLM-Classification Finetuning", name=CFG.exp_name, config=CFG)
 
 def train():
     exp_dir = f"output/exp/{CFG.exp_name}"
@@ -76,7 +76,7 @@ def train():
 
             inputs = {k: v.to(device) for k, v in batch.items() if k != "label"}
 
-            with torch.set_grad_enable(train):
+            with torch.set_grad_enabled(train):
                 logits = model(**inputs)
                 loss = criterion(logits, labels)
 
