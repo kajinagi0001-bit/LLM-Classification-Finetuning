@@ -35,6 +35,8 @@ def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     df = pd.read_csv("input/train.csv")
+    if CFG.mini_data:
+        df = df.iloc[:len(df) // 3]
     df = preprocess(df)
     df = df.apply(make_pairs, axis=1)
     df.encode_fail.value_counts(normalize=False)
