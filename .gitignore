@@ -5,3 +5,4 @@ input
 *.pyc
 *.wandb
 wandb/
+config.py
