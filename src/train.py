@@ -13,6 +13,9 @@ from config import CFG
 from dataset import preprocess, LMSYSDataset
 from model import PairwiseDebertaClassifier
 import json
+import wandb
+
+wandb.init(project="LLM-Classification Finetuning", name=CFG.exp_name, config=CFG.__dict__)
 
 def train():
     exp_dir = f"output/exp/{CFG.exp_name}"
@@ -92,6 +95,7 @@ def train():
     for epoch in range(CFG.epochs):
         train_loss = run_epoch(train_loader, train=True)
         val_loss = run_epoch(valid_loader)
+        wandb.log({"train_loss": train_loss, "val_loss": val_loss}, step=epoch)
 
         print(epoch + 1, train_loss, val_loss)
 
