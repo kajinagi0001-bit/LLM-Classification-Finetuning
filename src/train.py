@@ -117,7 +117,7 @@ def train():
         print(f"Epoch {epoch+1}")
         print(f"train_loss={train_loss:.4f}, train_acc={train_acc:.4f}")
         print(f"val_loss={val_loss:.4f}, val_acc={val_acc:.4f}")
-        wandb.log({"train_loss": train_loss, "val_loss": val_loss}, step=epoch)
+        wandb.log({"train_loss": train_loss, "train_acc": train_acc, "val_loss": val_loss, "val_acc": val_acc}, step=epoch)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
