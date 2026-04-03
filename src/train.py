@@ -60,44 +60,61 @@ def train():
     criterion = nn.CrossEntropyLoss(label_smoothing=0.02)
     optimizer = AdamW(model.parameters(), lr=CFG.lr)
 
-    steps = len(train_loader) * CFG.epochs
+    num_training_steps = len(train_loader) * CFG.epochs
+    num_warmup_steps = int(0.1 * num_training_steps)
+
     scheduler = get_cosine_schedule_with_warmup(
         optimizer,
-        int(0.1 * steps),
-        steps
+        num_warmup_steps=num_warmup_steps,
+        num_training_steps=num_training_steps
     )
 
-    def run_epoch(loader, train=False):
-        model.train() if train else model.eval()
+    def run_epoch(loader, model, criterion, optimizer=None, scheduler=None):
+        is_train = optimizer is not None
+        model.train() if is_train else model.eval()
         total_loss = 0
-
+        total_correct = 0
+        total_count = 0
+        
         for batch in tqdm(loader):
+            input_ids_a = batch["input_ids_a"].to(device)
+            attention_mask_a = batch["attention_mask_a"].to(device)
+            input_ids_b = batch["input_ids_b"].to(device)
+            attention_mask_b = batch["attention_mask_b"].to(device)
             labels = batch["label"].to(device)
-
-            inputs = {k: v.to(device) for k, v in batch.items() if k != "label"}
-
-            with torch.set_grad_enabled(train):
-                logits = model(**inputs)
+            
+            with torch.set_grad_enabled(is_train):
+                logits = model(
+                    input_ids_a = input_ids_a,
+                    attention_mask_a = attention_mask_a,
+                    input_ids_b = input_ids_b,
+                    attention_mask_b = attention_mask_b
+                )
                 loss = criterion(logits, labels)
 
-                if train:
+                if is_train:
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
                     scheduler.step()
+            
+            total_loss += loss.item() * labels.size(0)
+            preds = logits.argmax(dim=1)
+            total_correct += (preds == labels).sum().item()
+            total_count += labels.size(0)
 
-            total_loss += loss.item()
-
-        return total_loss / len(loader)
+        return total_loss / total_count, total_correct / total_count
 
     best_val_loss = float("inf")
 
     for epoch in range(CFG.epochs):
-        train_loss = run_epoch(train_loader, train=True)
-        val_loss = run_epoch(valid_loader)
-        wandb.log({"train_loss": train_loss, "val_loss": val_loss}, step=epoch)
+        train_loss, train_acc = run_epoch(train_loader, model, criterion, optimizer, scheduler)
+        val_loss, val_acc = run_epoch(valid_loader, model, criterion)
 
-        print(epoch + 1, train_loss, val_loss)
+        print(f"Epoch {epoch+1}")
+        print(f"train_loss={train_loss:.4f}, train_acc={train_acc:.4f}")
+        print(f"val_loss={val_loss:.4f}, val_acc={val_acc:.4f}")
+        wandb.log({"train_loss": train_loss, "val_loss": val_loss}, step=epoch)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
