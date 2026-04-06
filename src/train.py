@@ -81,7 +81,7 @@ def train():
         total_correct = 0
         total_count = 0
         
-        for batch in tqdm(loader):
+        for i, batch in tqdm(enumerate(loader), total=len(loader)):
             input_ids_a = batch["input_ids_a"].to(device)
             attention_mask_a = batch["attention_mask_a"].to(device)
             input_ids_b = batch["input_ids_b"].to(device)
@@ -98,9 +98,9 @@ def train():
                 loss = criterion(logits, labels)
 
                 if is_train:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                     optimizer.zero_grad()
                     loss.backward()
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                     optimizer.step()
                     scheduler.step()
             
@@ -108,9 +108,9 @@ def train():
             preds = logits.argmax(dim=1)
             total_correct += (preds == labels).sum().item()
             total_count += labels.size(0)
+            #debug
+            print(f"batch_{i} total_loss: {total_loss}, total_correct: {total_correct}, total_count: {total_count}")
 
-        #debug
-        print(total_loss, total_correct, total_count)
         return total_loss / total_count, total_correct / total_count
 
     best_val_loss = float("inf")
