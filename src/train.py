@@ -10,6 +10,7 @@ from torch.optim import AdamW
 from tqdm import tqdm
 
 from config import CFG
+
 from dataset import preprocess, make_pairs, LMSYSDataset
 from model import PairwiseDebertaClassifier
 import json
@@ -108,6 +109,8 @@ def train():
             total_correct += (preds == labels).sum().item()
             total_count += labels.size(0)
 
+        #debug
+        print(total_loss, total_correct, total_count)
         return total_loss / total_count, total_correct / total_count
 
     best_val_loss = float("inf")
