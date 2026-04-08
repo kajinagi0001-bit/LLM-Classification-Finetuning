@@ -41,12 +41,13 @@ def inference():
 
     all_probs = torch.cat(all_probs).numpy()
 
-    submission = test_df[["id"]].copy()
-    submission["winner_model_a"] = all_probs[:, 0]
-    submission["winner_model_b"] = all_probs[:, 1]
-    submission["winner_tie"] = all_probs[:, 2]
+    sample = pd.read_csv("input/sample_submission.csv")
 
-    submission.to_csv(f"output/exp/{CFG.exp_name}/submission.csv", index=False)
+    sample["winner_model_a"] = all_probs[:, 0]
+    sample["winner_model_b"] = all_probs[:, 1]
+    sample["winner_tie"] = all_probs[:, 2]
+
+    sample.to_csv(f"output/exp/{CFG.exp_name}/submission.csv", index=False)
     print(f"saved to output/exp/{CFG.exp_name}/submission.csv")
 
 if __name__ == "__main__":

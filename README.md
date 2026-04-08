@@ -18,3 +18,14 @@ Dockerコマンド
 - コンテナの一覧表示:  docker compose ps   (-a で停止中のものも表示)
 - コンテナでコマンド実行:  docker exec -it "コンテナ名" /bin/bash
 - コンテナの停止: docker compose down
+
+次はforward時にautocastを使用して動かす。（コード修正済みexp003_lr1e4_autocast）
+autocast使わないときとの精度比較
+うまくいけば、データサイズ戻す
+autocast単体で使うと学習されない
+gradscalerとの併用が前提？
+
+lr:
+1e-4　val_accが上がらない、過学習
+1e-5  3エポックまではval_acc上昇0.46程度
+1e-6 
