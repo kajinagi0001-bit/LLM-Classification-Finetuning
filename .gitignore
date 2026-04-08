@@ -6,3 +6,8 @@ input
 *.wandb
 wandb/
 config.py
+*.pth
+*.zip
+*.csv
+install_model.py
+deberta_v3_small/

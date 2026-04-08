@@ -18,8 +18,8 @@ import wandb
 from torch.amp import autocast, GradScaler
 
 #scaler = GradScaler()
-
-wandb.init(project="LLM-Classification Finetuning", name=CFG.exp_name, config=CFG)
+if CFG.use_wandb:
+    wandb.init(project="LLM-Classification Finetuning", name=CFG.exp_name, config=CFG)
 
 def train():
     exp_dir = f"output/exp/{CFG.exp_name}"
@@ -90,7 +90,8 @@ def train():
         num_training_steps=num_training_steps
     )
 
-    wandb.watch(model, log='all')
+    if CFG.use_wandb:
+        wandb.watch(model, log='all')
 
     def run_epoch(loader, model, criterion, optimizer=None, scheduler=None):
         is_train = optimizer is not None
@@ -167,7 +168,8 @@ def train():
         print(f"Epoch {epoch+1}")
         print(f"train_loss={train_loss:.4f}, train_acc={train_acc:.4f}")
         print(f"val_loss={val_loss:.4f}, val_acc={val_acc:.4f}")
-        wandb.log({"train_loss": train_loss, "train_acc": train_acc, "val_loss": val_loss, "val_acc": val_acc}, step=epoch)
+        if CFG.use_wandb:
+            wandb.log({"train_loss": train_loss, "train_acc": train_acc, "val_loss": val_loss, "val_acc": val_acc}, step=epoch)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
