@@ -1,6 +1,7 @@
 # src/train.py
 import os
 import pandas as pd
+from model import MODEL_DICT
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -12,7 +13,7 @@ from tqdm import tqdm
 #from config import CFG
 
 from dataset import preprocess, make_pairs, LMSYSDataset
-from model import PairwiseDebertaClassifier
+from model.model import PairwiseDebertaClassifier, DebertaClassifier_TokenAttentionPooling
 import json
 import wandb
 from torch.amp import autocast, GradScaler
@@ -61,7 +62,7 @@ def train(CFG):
     #print(train_df.iloc[0]["label"])
     #exit()
 
-    tokenizer = AutoTokenizer.from_pretrained(CFG.model_name)
+    tokenizer = AutoTokenizer.from_pretrained(CFG.model_encoder_name)
 
     #sample = train_df.iloc[0]
     #tokens_a = tokenizer(sample["text_a"], truncation=False)["input_ids"]
@@ -76,7 +77,7 @@ def train(CFG):
     train_loader = DataLoader(train_ds, batch_size=CFG.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_ds, batch_size=CFG.batch_size, shuffle=False)
 
-    model = PairwiseDebertaClassifier(CFG.model_name, CFG.num_classes).to(device).float()
+    model = MODEL_DICT[CFG.model_structure_name](CFG.model_encoder_name, CFG.num_classes).to(device).float()
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.02)
 

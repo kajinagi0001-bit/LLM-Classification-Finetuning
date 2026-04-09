@@ -1,6 +1,7 @@
 # src/inference.py
 import os
 import pandas as pd
+from model import MODEL_DICT
 import torch
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
@@ -8,7 +9,7 @@ from tqdm import tqdm
 
 from config import CFG
 from dataset import preprocess, make_pairs, LMSYSDataset
-from model import PairwiseDebertaClassifier
+from model.model import PairwiseDebertaClassifier, DebertaClassifier_TokenAttentionPooling
 
 
 def inference():
@@ -26,7 +27,7 @@ def inference():
     test_ds = LMSYSDataset(test_df, tokenizer, CFG.max_length, is_test=True)
     test_loader = DataLoader(test_ds, batch_size=CFG.batch_size, shuffle=False)
 
-    model = PairwiseDebertaClassifier(CFG.model_name, CFG.num_classes).to(device)
+    model = MODEL_DICT[CFG.model_structure_name](CFG.model_encoder_name, CFG.num_classes).to(device)
     model.load_state_dict(torch.load(f"output/exp/{CFG.exp_name}/best_model.pth", map_location=device))
     model.eval()
 
