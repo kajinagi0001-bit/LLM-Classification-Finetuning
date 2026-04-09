@@ -9,7 +9,7 @@ from transformers import AutoTokenizer, get_cosine_schedule_with_warmup
 from torch.optim import AdamW
 from tqdm import tqdm
 
-from config import CFG
+#from config import CFG
 
 from dataset import preprocess, make_pairs, LMSYSDataset
 from model import PairwiseDebertaClassifier
@@ -17,11 +17,11 @@ import json
 import wandb
 from torch.amp import autocast, GradScaler
 
-#scaler = GradScaler()
-if CFG.use_wandb:
-    wandb.init(project="LLM-Classification Finetuning", name=CFG.exp_name, config=CFG)
+scaler = GradScaler("cuda")
 
-def train():
+def train(CFG):
+    if CFG.use_wandb:
+        wandb.init(project="LLM-Classification Finetuning", name=CFG.exp_name, config=CFG)
     exp_dir = f"output/exp/{CFG.exp_name}"
     os.makedirs(exp_dir, exist_ok=True)
 
@@ -40,7 +40,7 @@ def train():
 
     df = pd.read_csv("input/train.csv")
     if CFG.mini_data:
-        df = df.iloc[:len(df) // 3]
+        df = df.iloc[:len(df) // 8]
     df = preprocess(df)
     df = df.apply(make_pairs, axis=1)
     df.encode_fail.value_counts(normalize=False)
@@ -114,29 +114,42 @@ def train():
 
             #before = model.classifier.weight.detach().clone()
             with torch.set_grad_enabled(is_train):
-                #with autocast('cuda', enabled=CFG.amp):
-                logits = model(
-                    input_ids_a = input_ids_a,
-                    attention_mask_a = attention_mask_a,
-                    input_ids_b = input_ids_b,
-                    attention_mask_b = attention_mask_b
-                )
+                if is_train: optimizer.zero_grad()
+                with autocast('cuda', enabled=CFG.amp):
+                    logits = model(
+                        input_ids_a = input_ids_a,
+                        attention_mask_a = attention_mask_a,
+                        input_ids_b = input_ids_b,
+                        attention_mask_b = attention_mask_b
+                    )
 
-                #print(f"logits[0]: {logits}")
-                #print(f"labels[0]: {labels}")
-                loss = criterion(logits, labels)
-                #print(f"loss[0]: {loss}")
+                    #print(f"logits[0]: {logits}")
+                    #print(f"labels[0]: {labels}")
+                    loss = criterion(logits, labels)
+                    #print(f"loss[0]: {loss}")
 
                 if is_train:
-                    optimizer.zero_grad()
-                    loss.backward()
-                    #scaler.scale(loss).backward()
-                    #scaler.unscale_(optimizer)
+                    before = model.classifier.weight.detach().clone()
+                    prev_scale = scaler.get_scale()
+                    any_nonfinite = False
+                    for name, p in model.named_parameters():
+                        if p.grad is not None and not torch.isfinite(p.grad).all():
+                            print(f"non-finite grad: {name}")
+                            any_nonfinite = True
+                            break
+                    #loss.backward()
+                    scaler.scale(loss).backward()
+                    scaler.unscale_(optimizer)
                     torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-                    optimizer.step()
-                    #scaler.step(optimizer)
-                    scheduler.step()
-                    #scaler.update()
+                    #optimizer.step()
+                    scaler.step(optimizer)
+                    scaler.update()
+
+                    #print("scale:", prev_scale, "->", scaler.get_scale())
+                    #print("any_nonfinite:", any_nonfinite)
+                    after = model.classifier.weight.detach().clone()
+                    #print("update size:", (after - before).abs().mean().item())
+
             
             #total_norm = 0.0
             #for name, p in model.named_parameters():
@@ -147,13 +160,14 @@ def train():
             #            print(name, param_norm)
             #total_norm = total_norm ** 0.5
             #print("grad_norm:", total_norm)
-            #fter = model.classifier.weight.detach().clone()
+            #after = model.classifier.weight.detach().clone()
             #print("update size:", (after - before).abs().mean().item())
 
             total_loss += loss.item() * labels.size(0)
             preds = logits.argmax(dim=1)
             total_correct += (preds == labels).sum().item()
             total_count += labels.size(0)
+            scheduler.step()
             #debug
             #print(f"batch_{i} total_loss: {total_loss}, total_correct: {total_correct}, total_count: {total_count}")
 
@@ -172,8 +186,11 @@ def train():
             wandb.log({"train_loss": train_loss, "train_acc": train_acc, "val_loss": val_loss, "val_acc": val_acc}, step=epoch)
 
         if val_loss < best_val_loss:
+            best_epoch = epoch
             best_val_loss = val_loss
             torch.save(model.state_dict(), f"output/exp/{CFG.exp_name}/best_model.pth")
+    
+    return best_epoch, best_val_loss
 
 if __name__ == "__main__":
     train()

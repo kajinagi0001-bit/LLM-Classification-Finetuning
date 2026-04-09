@@ -8,7 +8,8 @@ BASE_PATHあっているか
 csvデータはこのディレクトリにないのでinputファイルの中に個別で入れる必要あり
 
 実行：
-src/main.py
+python src/main.py --wandb --mode (train/infer/test)
+wandb使わないときは宣言なし
 
 
 環境:
