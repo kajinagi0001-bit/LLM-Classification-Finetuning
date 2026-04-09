@@ -11,3 +11,5 @@ class CFG:
     label2name = {0: 'winner_model_a', 1: 'winner_model_b', 2: 'winner_tie'}
     name2label = {v: k for k, v in label2name.items()}
     mini_data = True
+    use_wandb = False
+    amp = True
