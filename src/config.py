@@ -1,6 +1,7 @@
 class CFG:
     seed = 42
-    model_name = "microsoft/deberta-v3-small"
+    model_encoder_name = "microsoft/deberta-v3-small" #変数変更済み
+    model_structure_name = "Baseline" # "Baseline" or "TokenAttention"
     exp_name = "exp004_lr1e5_autocast" # 実験ごとに変更
     max_length = 512
     batch_size = 8

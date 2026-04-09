@@ -2,6 +2,7 @@
 
 4/01 Baseline
 4/02 src 作成
+4/09 taniguchi-space:TokenAttentionPooling_Layer作成  
 
 要確認：
 BASE_PATHあっているか
