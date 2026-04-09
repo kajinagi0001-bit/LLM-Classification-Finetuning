@@ -31,7 +31,6 @@ class PairwiseDebertaClassifier(nn.Module):
         feat_b = self.encode(input_ids_b, attention_mask_b)
         #print(f"feat_b: {feat_b[0]}")
         feats = torch.cat([feat_a, feat_b], dim=1)
-        feats = feats
         #print(f"feats: {feats[0]}")
         logits = self.classifier(feats)
         #print(f"logits: {logits[0]}")
