@@ -10,6 +10,8 @@ class PairwiseDebertaClassifier(nn.Module):
         super().__init__()
         self.encoder = AutoModel.from_pretrained(model_name)
         hidden_size = self.encoder.config.hidden_size
+        self.fc1 = nn.Linear(hidden_size*2, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size*2)
         self.classifier = nn.Linear(hidden_size*2, num_classes)
 
     def mean_pool(self, last_hidden_state, attention_mask):
@@ -32,7 +34,10 @@ class PairwiseDebertaClassifier(nn.Module):
         feat_b = self.encode(input_ids_b, attention_mask_b)
         #print(f"feat_b: {feat_b[0]}")
         feats = torch.cat([feat_a, feat_b], dim=1)
-        feats = feats
+        feats = self.fc1(feats)
+        feats = torch.relu(feats)
+        feats = self.fc2(feats)
+        feats = torch.relu(feats)
         #print(f"feats: {feats[0]}")
         logits = self.classifier(feats)
         #print(f"logits: {logits[0]}")
@@ -55,7 +60,8 @@ class DebertaClassifier_TokenAttentionPooling(nn.Module):
         scores = self.token_attention_layer(last_hidden_state).squeeze(-1)  # (B, T)
 
         # paddingを除外
-        scores = scores.masked_fill(attention_mask == 0, -1e9)
+        mask_value = torch.finfo(scores.dtype).min
+        scores = scores.masked_fill(attention_mask == 0, mask_value)
 
         # softmaxで重要度に変換
         token_attention = torch.softmax(scores, dim=1)  # (B, T)
@@ -71,7 +77,7 @@ class DebertaClassifier_TokenAttentionPooling(nn.Module):
     # Encode (Ex. DeBERTa)
     def encode(self, input_ids, attention_mask):
         outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        return outputs.last_hidden_state
+        return outputs
 
     # Forward pass
     def forward(self, input_ids_a, attention_mask_a, input_ids_b, attention_mask_b):

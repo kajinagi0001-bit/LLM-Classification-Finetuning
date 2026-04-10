@@ -7,8 +7,8 @@ from torch.utils.data import DataLoader
 from transformers import AutoTokenizer
 from tqdm import tqdm
 
-from config import CFG
-from dataset import preprocess, make_pairs, LMSYSDataset
+from .config import CFG
+from .dataset import preprocess, make_pairs, LMSYSDataset
 from model.model import PairwiseDebertaClassifier, DebertaClassifier_TokenAttentionPooling
 
 

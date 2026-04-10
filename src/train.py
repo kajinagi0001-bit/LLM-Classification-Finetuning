@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 #from config import CFG
 
-from dataset import preprocess, make_pairs, LMSYSDataset
+from .dataset import preprocess, make_pairs, LMSYSDataset
 from model.model import PairwiseDebertaClassifier, DebertaClassifier_TokenAttentionPooling
 import json
 import wandb
@@ -41,7 +41,7 @@ def train(CFG):
 
     df = pd.read_csv("input/train.csv")
     if CFG.mini_data:
-        df = df.iloc[:len(df) // 8]
+        df = df.iloc[:len(df) // 3]
     df = preprocess(df)
     df = df.apply(make_pairs, axis=1)
     df.encode_fail.value_counts(normalize=False)
@@ -77,7 +77,12 @@ def train(CFG):
     train_loader = DataLoader(train_ds, batch_size=CFG.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_ds, batch_size=CFG.batch_size, shuffle=False)
 
-    model = MODEL_DICT[CFG.model_structure_name](CFG.model_encoder_name, CFG.num_classes).to(device).float()
+    model = MODEL_DICT[CFG.model_structure_name](CFG.model_encoder_name, CFG.num_classes)
+    # multiple GPU
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+        print(f"Using {torch.cuda.device_count()} GPUs")
+    model.to(device).float()
 
     criterion = nn.CrossEntropyLoss(label_smoothing=0.02)
 
@@ -168,7 +173,8 @@ def train(CFG):
             preds = logits.argmax(dim=1)
             total_correct += (preds == labels).sum().item()
             total_count += labels.size(0)
-            scheduler.step()
+            if scheduler is not None:
+                scheduler.step()
             #debug
             #print(f"batch_{i} total_loss: {total_loss}, total_correct: {total_correct}, total_count: {total_count}")
 

@@ -1,7 +1,7 @@
 import argparse
-from train import train
-from inference import inference
-from config import CFG
+from .train import train
+from .inference import inference
+from .config import CFG
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--mode", choices=["train", "infer", "test"])
